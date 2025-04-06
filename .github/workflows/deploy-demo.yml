@@ -1,0 +1,42 @@
+name: Deploy React Demo to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'projects/fast-face-detection-package/demo/**'
+      - 'projects/fast-face-detection-package/src/**'
+      - 'projects/fast-face-detection-package/dist/**'
+      - '.github/workflows/deploy-demo.yml'
+
+jobs:
+  build-and-deploy-react:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+      
+      - name: Build package
+        working-directory: ./projects/fast-face-detection-package
+        run: |
+          npm install
+          npm run build
+      
+      - name: Build React demo
+        working-directory: ./projects/fast-face-detection-package/demo
+        run: |
+          npm install
+          npm run build
+      
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: ./projects/fast-face-detection-package/demo/dist
+          branch: gh-pages 
