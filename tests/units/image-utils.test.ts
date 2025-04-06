@@ -77,4 +77,34 @@ describe('ImageUtils', () => {
     
     expect(resultCanvas).toBe(canvas); // Deve ser a mesma referência
   });
+
+  describe('drawBox', () => {
+    it('deve desenhar uma caixa no canvas', () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 300;
+      canvas.height = 200;
+      
+      // Configurar variáveis para o teste
+      const box = { x: 10, y: 20, width: 100, height: 150 };
+      
+      // Chamar o método e verificar que não lança exceção
+      expect(() => {
+        ImageUtils.drawBox(canvas, box, 'rgba(255, 0, 0, 0.8)', 3);
+      }).not.toThrow();
+    });
+
+    it('deve usar valores padrão quando cor e espessura não são fornecidos', () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 300;
+      canvas.height = 200;
+      
+      // Configurar variáveis para o teste
+      const box = { x: 10, y: 20, width: 100, height: 150 };
+      
+      // Chamar o método com valores padrão
+      expect(() => {
+        ImageUtils.drawBox(canvas, box);
+      }).not.toThrow();
+    });
+  });
 }); 

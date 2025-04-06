@@ -26,11 +26,12 @@
   "author": "The Horizon Dev",
   "license": "MIT",
   "dependencies": {
-    "@tensorflow-models/face-detection": "^1.0.2",
-    "@tensorflow-models/face-landmarks-detection": "^1.0.5",
+    "@tensorflow-models/face-detection": "^1.0.3",
+    "@tensorflow-models/face-landmarks-detection": "^1.0.6",
     "@tensorflow/tfjs-core": "^4.22.0"
   },
   "devDependencies": {
+    "@jest/globals": "^29.7.0",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.14.0",
     "eslint": "^9.24.0",
@@ -38,7 +39,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "rollup": "^4.39.0",
     "rollup-plugin-typescript2": "^0.36.0",
-    "ts-jest": "^29.1.1",
+    "ts-jest": "^29.3.1",
     "typescript": "^5.8.3"
   }
 }

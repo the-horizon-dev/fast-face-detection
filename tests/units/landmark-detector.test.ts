@@ -54,4 +54,41 @@ describe('LandmarkDetector', () => {
     // Não podemos testar diretamente o valor interno, mas chamamos o método para testar se não quebra
     expect(() => detector.updateOptions(options)).not.toThrow();
   });
+
+  it('deve garantir que o detector seja carregado apenas uma vez', async () => {
+    // Criar nova instância para este teste
+    const localDetector = new LandmarkDetector();
+    
+    // Espionar o método de criação do detector
+    const createDetectorSpy = jest.spyOn(faceLandmarksDetection, 'createDetector');
+    const initialCallCount = createDetectorSpy.mock.calls.length;
+    
+    // Chamar detectLandmarks duas vezes
+    await localDetector.detectLandmarks(image);
+    await localDetector.detectLandmarks(image);
+    
+    // Verificar se o método de criação foi chamado apenas uma vez mais
+    expect(createDetectorSpy.mock.calls.length).toBe(initialCallCount + 1);
+  });
+
+  it('deve reiniciar o detector ao atualizar opções com scoreThreshold', async () => {
+    // Criar nova instância para este teste
+    const localDetector = new LandmarkDetector();
+    
+    // Primeiro, detectar landmarks para inicializar o detector
+    await localDetector.detectLandmarks(image);
+    
+    // Atualizar opções com scoreThreshold
+    localDetector.updateOptions({ scoreThreshold: 0.7 });
+    
+    // Espionar o método de criação do detector
+    const createDetectorSpy = jest.spyOn(faceLandmarksDetection, 'createDetector');
+    const initialCallCount = createDetectorSpy.mock.calls.length;
+    
+    // Detectar landmarks novamente
+    await localDetector.detectLandmarks(image);
+    
+    // Verificar se o detector foi recriado
+    expect(createDetectorSpy.mock.calls.length).toBe(initialCallCount + 1);
+  });
 }); 

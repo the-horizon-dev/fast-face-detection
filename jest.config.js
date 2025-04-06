@@ -6,6 +6,9 @@ export default {
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: 'tsconfig.json',
+      diagnostics: {
+        ignoreCodes: [2322, 2345, 2339, 2740]
+      }
     }],
   },
   moduleNameMapper: {

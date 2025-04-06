@@ -51,4 +51,41 @@ describe('FaceDetector', () => {
     // Não podemos testar diretamente o valor interno, mas chamamos o método para testar se não quebra
     expect(() => detector.updateOptions(options)).not.toThrow();
   });
+
+  it('deve garantir que o detector seja carregado apenas uma vez', async () => {
+    // Criar nova instância para este teste
+    const localDetector = new FaceDetector();
+    
+    // Espionar o método de criação do detector
+    const createDetectorSpy = jest.spyOn(faceDetection, 'createDetector');
+    const initialCallCount = createDetectorSpy.mock.calls.length;
+    
+    // Chamar detectFaces duas vezes
+    await localDetector.detectFaces(image);
+    await localDetector.detectFaces(image);
+    
+    // Verificar se o método de criação foi chamado apenas uma vez mais
+    expect(createDetectorSpy.mock.calls.length).toBe(initialCallCount + 1);
+  });
+
+  it('deve reiniciar o detector ao atualizar opções com maxFaces', async () => {
+    // Criar nova instância para este teste
+    const localDetector = new FaceDetector();
+    
+    // Primeiro, detectar faces para inicializar o detector
+    await localDetector.detectFaces(image);
+    
+    // Atualizar opções com maxFaces
+    localDetector.updateOptions({ maxFaces: 5 });
+    
+    // Espionar o método de criação do detector
+    const createDetectorSpy = jest.spyOn(faceDetection, 'createDetector');
+    const initialCallCount = createDetectorSpy.mock.calls.length;
+    
+    // Detectar faces novamente
+    await localDetector.detectFaces(image);
+    
+    // Verificar se o detector foi recriado
+    expect(createDetectorSpy.mock.calls.length).toBe(initialCallCount + 1);
+  });
 }); 

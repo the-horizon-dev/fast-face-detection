@@ -1,3 +1,28 @@
+import { jest } from '@jest/globals';
+
+// Definições de tipos para os mocks
+interface FaceBox {
+  xMin: number;
+  yMin: number;
+  width: number;
+  height: number;
+}
+
+interface FaceDetection {
+  box: FaceBox;
+  score: number;
+}
+
+interface Keypoint {
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface FaceLandmarks {
+  keypoints: Keypoint[];
+}
+
 // Mock do browser Canvas API
 class CanvasRenderingContext2DMock {
   fillStyle: string = '#000000';
@@ -16,7 +41,7 @@ class CanvasRenderingContext2DMock {
 // Mock do elemento Canvas para testes
 HTMLCanvasElement.prototype.getContext = jest.fn().mockImplementation(() => {
   return new CanvasRenderingContext2DMock();
-});
+}) as any;
 
 // Mock global para TensorFlow.js
 jest.mock('@tensorflow/tfjs-core', () => ({
@@ -36,17 +61,19 @@ jest.mock('@tensorflow-models/face-detection', () => ({
     MediaPipeFaceDetector: 'MediaPipeFaceDetector'
   },
   createDetector: jest.fn().mockImplementation(() => ({
-    estimateFaces: jest.fn().mockResolvedValue([
-      {
-        box: {
-          xMin: 100,
-          yMin: 50,
-          width: 200,
-          height: 200
-        },
-        score: 0.95
-      }
-    ])
+    estimateFaces: jest.fn().mockImplementation((): Promise<FaceDetection[]> => {
+      return Promise.resolve([
+        {
+          box: {
+            xMin: 100,
+            yMin: 50,
+            width: 200,
+            height: 200
+          },
+          score: 0.95
+        } 
+      ]);
+    })
   }))
 }));
 
@@ -56,14 +83,16 @@ jest.mock('@tensorflow-models/face-landmarks-detection', () => ({
     MediaPipeFaceMesh: 'MediaPipeFaceMesh'
   },
   createDetector: jest.fn().mockImplementation(() => ({
-    estimateFaces: jest.fn().mockResolvedValue([
-      {
-        keypoints: Array(468).fill(null).map((_, i) => ({
-          x: 100 + (i % 20),
-          y: 50 + Math.floor(i / 20),
-          z: 0
-        }))
-      }
-    ])
+    estimateFaces: jest.fn().mockImplementation((): Promise<FaceLandmarks[]> => {
+      return Promise.resolve([
+        {
+          keypoints: Array(468).fill(null).map((_, i) => ({
+            x: 100 + (i % 20),
+            y: 50 + Math.floor(i / 20),
+            z: 0
+          }))
+        }
+      ]);
+    })
   }))
 })); 
