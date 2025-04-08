@@ -6,7 +6,6 @@ interface DetectionOptions {
   maxFaces?: number;
   enableTracking?: boolean;
 }
-
 interface FaceDetection {
   detection: {
     box: {
@@ -45,6 +44,23 @@ interface FaceDetectionContextType {
 
 const FaceDetectionContext = createContext<FaceDetectionContextType | undefined>(undefined);
 
+// Garantir que o backend do TensorFlow.js seja registrado
+function ensureTfjsBackend() {
+  // Verificar se o objeto tfjs está disponível globalmente
+  if (typeof window !== 'undefined' && (window as any).tf) {
+    const tf = (window as any).tf;
+    // Registrar o backend webgl se disponível
+    if (tf.backend && !tf.findBackend('webgl') && tf.registerBackend) {
+      console.log('Registrando backend webgl do TensorFlow.js...');
+      try {
+        tf.setBackend('webgl');
+      } catch (error) {
+        console.warn('Erro ao configurar backend webgl:', error);
+      }
+    }
+  }
+}
+
 export function FaceDetectionProvider({ children }: { children: ReactNode }) {
   // Estado para armazenar a stream de vídeo
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
@@ -72,6 +88,8 @@ export function FaceDetectionProvider({ children }: { children: ReactNode }) {
 
   // Inicializar API de detecção facial
   useEffect(() => {
+    // Garantir que o backend do TensorFlow.js esteja disponível
+    ensureTfjsBackend();
     initFaceAPI();
   }, []);
 
@@ -85,7 +103,12 @@ export function FaceDetectionProvider({ children }: { children: ReactNode }) {
   // Inicializar a API
   async function initFaceAPI() {
     try {
-      setFaceAPI(null); // Limpar qualquer instância anterior
+      // Dispor a instância anterior se existir
+      if (faceAPI) {
+        console.log('Descartando instância anterior da FaceAPI...');
+        faceAPI.dispose();
+        setFaceAPI(null);
+      }
       
       console.log('Inicializando FaceAPI...');
       const api = new FaceAPI(detectionOptions);
@@ -169,6 +192,19 @@ export function FaceDetectionProvider({ children }: { children: ReactNode }) {
       console.warn('FaceAPI não está inicializada ainda');
       return;
     }
+
+    // Verificar se o input tem dimensões válidas
+    if (input instanceof HTMLVideoElement) {
+      if (input.videoWidth === 0 || input.videoHeight === 0) {
+        console.warn('Vídeo ainda não está pronto para processamento');
+        return;
+      }
+    } else if (input instanceof HTMLImageElement) {
+      if (input.width === 0 || input.height === 0) {
+        console.warn('Imagem ainda não está carregada completamente');
+        return;
+      }
+    }
     
     const startTime = performance.now();
     let faces;
@@ -189,7 +225,12 @@ export function FaceDetectionProvider({ children }: { children: ReactNode }) {
       setFacesDetected([]);
       
       // Se houver erro persistente, pode ser problema com a inicialização da API
-      if (processImage.toString().includes('Error')) {
+      if (error instanceof Error && error.message.includes('texture size')) {
+        console.warn('Erro de textura inválida, aguardando próximo frame');
+        return;
+      }
+      
+      if (error instanceof Error && error.message.includes('Error')) {
         console.warn('Tentando reinicializar a API após erro de detecção');
         initFaceAPI();
       }
@@ -219,6 +260,32 @@ export function FaceDetectionProvider({ children }: { children: ReactNode }) {
       return Promise.reject(error);
     }
   };
+
+  // Limpar recursos quando o componente for desmontado
+  useEffect(() => {
+    return () => {
+      // Parar câmera se estiver ativa
+      if (mediaStream) {
+        stopCamera();
+      }
+      
+      // Liberar recursos da API
+      if (faceAPI) {
+        console.log('Descartando FaceAPI no cleanup...');
+        faceAPI.dispose();
+      }
+      
+      // Tentar liberar recursos do mediapipeFace singleton se o método existir
+      console.log('Tentando descartar mediapipeFace no cleanup...');
+      try {
+        if (typeof mediapipeFace.dispose === 'function') {
+          mediapipeFace.dispose();
+        }
+      } catch (error) {
+        console.warn('Erro ao descartar mediapipeFace:', error);
+      }
+    };
+  }, [mediaStream, faceAPI]);
 
   return (
     <FaceDetectionContext.Provider 

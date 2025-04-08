@@ -10,7 +10,7 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
-    "@the-horizon-dev/fast-face-detection": "file:..",
+    "@the-horizon-dev/fast-face-detection": "^1.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

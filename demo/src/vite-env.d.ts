@@ -45,6 +45,7 @@ declare module '@the-horizon-dev/fast-face-detection' {
     ): Promise<FaceDetectionWithLandmarks[]>;
     updateOptions(options: DetectionOptions): void;
     getOptions(): DetectionOptions;
+    dispose(): void;
   }
 
   export class FaceDetector {
@@ -53,6 +54,7 @@ declare module '@the-horizon-dev/fast-face-detection' {
       input: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement
     ): Promise<FaceDetection[]>;
     updateOptions(options: DetectionOptions): void;
+    dispose(): void;
   }
 
   export class LandmarkDetector {
@@ -61,6 +63,7 @@ declare module '@the-horizon-dev/fast-face-detection' {
       input: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement
     ): Promise<Array<{ positions: Point[] }>>;
     updateOptions(options: DetectionOptions): void;
+    dispose(): void;
   }
 
   export class ImageUtils {
@@ -81,5 +84,6 @@ declare module '@the-horizon-dev/fast-face-detection' {
       input: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement,
       options?: DetectionOptions
     ): Promise<FaceDetectionWithLandmarks[]>;
+    dispose(): void;
   };
 } 

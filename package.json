@@ -6,13 +6,27 @@
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": [
+    "**/tensorflow-utils.ts",
+    "**/*tensorflow*.js"
+  ],
   "scripts": {
     "build": "rollup -c",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
-    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "dev": "rollup -c -w",
+    "test": "npm run test:unit && npm run test:unit-jsdom && npm run test:integration",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config=jest.config.mjs --selectProjects unit",
+    "test:unit-jsdom": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config=jest.config.mjs --selectProjects unit-jsdom",
+    "test:integration": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config=jest.config.mjs --selectProjects integration",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config=jest.config.mjs --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config=jest.config.mjs --coverage",
     "lint": "eslint src --ext .ts",
-    "prepare": "npm run build"
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run lint && npm run test"
   },
   "keywords": [
     "face-detection",
@@ -28,18 +42,46 @@
   "dependencies": {
     "@tensorflow-models/face-detection": "^1.0.3",
     "@tensorflow-models/face-landmarks-detection": "^1.0.6",
+    "@tensorflow/tfjs-backend-cpu": "^4.22.0",
+    "@tensorflow/tfjs-backend-webgl": "^4.22.0",
+    "@tensorflow/tfjs-converter": "^4.22.0",
     "@tensorflow/tfjs-core": "^4.22.0"
+  },
+  "peerDependencies": {
+    "@tensorflow/tfjs-react-native": "^1.0.0"
+  },
+  "optionalDependencies": {
+    "@tensorflow/tfjs-node": "^4.22.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
+    "@tensorflow/tfjs-react-native": "^1.0.0",
+    "@types/isomorphic-fetch": "^0.0.39",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.14.0",
+    "canvas": "^2.11.2",
     "eslint": "^9.24.0",
+    "isomorphic-fetch": "^3.0.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "prettier": "^3.5.3",
     "rollup": "^4.39.0",
     "rollup-plugin-typescript2": "^0.36.0",
     "ts-jest": "^29.3.1",
     "typescript": "^5.8.3"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/the-horizon-dev/fast-face-detection.git"
+  },
+  "bugs": {
+    "url": "https://github.com/the-horizon-dev/fast-face-detection/issues"
+  },
+  "homepage": "https://github.com/the-horizon-dev/fast-face-detection#readme"
 }

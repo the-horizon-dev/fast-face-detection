@@ -53,10 +53,27 @@ const VideoDisplay = () => {
     
     const processVideoFrame = async (timestamp: number) => {
       if (videoRef.current) {
+        // Verificar se o vídeo está pronto
+        if (videoRef.current.readyState < 2) {
+          // Se o vídeo não estiver pronto, aguardar o próximo frame
+          animationFrame = requestAnimationFrame(processVideoFrame);
+          return;
+        }
+
+        // Verificar se o vídeo tem dimensões válidas
+        if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) {
+          animationFrame = requestAnimationFrame(processVideoFrame);
+          return;
+        }
+
         // Limitar a taxa de processamento para não sobrecarregar
         if (timestamp - lastProcessed >= PROCESS_INTERVAL) {
-          await processImage(videoRef.current);
-          lastProcessed = timestamp;
+          try {
+            await processImage(videoRef.current);
+            lastProcessed = timestamp;
+          } catch (error) {
+            console.error('Erro ao processar frame:', error);
+          }
         }
       }
       
@@ -65,7 +82,15 @@ const VideoDisplay = () => {
       }
     };
     
-    animationFrame = requestAnimationFrame(processVideoFrame);
+    // Aguardar o vídeo estar pronto antes de começar o processamento
+    const videoElement = videoRef.current;
+    if (videoElement.readyState < 2) {
+      videoElement.addEventListener('canplay', () => {
+        animationFrame = requestAnimationFrame(processVideoFrame);
+      }, { once: true });
+    } else {
+      animationFrame = requestAnimationFrame(processVideoFrame);
+    }
     
     return () => {
       if (animationFrame) {

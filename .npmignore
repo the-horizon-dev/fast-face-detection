@@ -1,10 +1,32 @@
+# Arquivos de desenvolvimento
 src/
-node_modules/
+tests/
+demo/
+.github/
+.vscode/
+.idea/
+
+# Arquivos de configuração
+.eslintrc
+.prettierrc
+jest.config.js
+tsconfig.json
+rollup.config.js
+
+# Arquivos de documentação
+docs/
+*.md
+!README.md
+
+# Arquivos de teste e cobertura
+coverage/
+*.test.ts
+*.spec.ts
+
+# Outros
 .git/
 .gitignore
 .npmignore
-tsconfig.json
-rollup.config.js
+.editorconfig
 *.log
-.DS_Store 
-tests/
+.DS_Store

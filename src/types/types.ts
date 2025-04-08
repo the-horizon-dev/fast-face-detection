@@ -1,5 +1,9 @@
 /**
- * Interface para representar um ponto 2D
+ * Core type definitions for face detection
+ */
+
+/**
+ * 2D point
  */
 export interface Point {
   x: number;
@@ -7,7 +11,14 @@ export interface Point {
 }
 
 /**
- * Interface para representar uma caixa delimitadora
+ * 3D point
+ */
+export interface Point3D extends Point {
+  z: number;
+}
+
+/**
+ * Bounding box
  */
 export interface Box {
   x: number;
@@ -17,7 +28,7 @@ export interface Box {
 }
 
 /**
- * Enumeração para os tipos de entrada suportados
+ * Supported input types
  */
 export enum InputType {
   IMAGE = 'image',
@@ -26,24 +37,62 @@ export enum InputType {
 }
 
 /**
- * Tipo para elementos de entrada suportados
+ * Supported model types
  */
-export type MediaElement = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement;
-
-/**
- * Interface para opções de configuração de detecção
- */
-export interface DetectionOptions {
-  // Limiar de confiança para a detecção (valores de 0 a 1)
-  scoreThreshold?: number;
-  // Número máximo de faces a serem detectadas
-  maxFaces?: number;
-  // Habilitar rastreamento entre frames (para vídeo)
-  enableTracking?: boolean;
+export enum ModelType {
+  MEDIAPIPE_FACE = 'mediapipe',
+  SHORT = 'short'
 }
 
 /**
- * Resultado de uma detecção facial
+ * TensorFlow runtime
+ */
+export type TensorFlowRuntime = 'tfjs' | 'mediapipe' | 'tflite';
+
+/**
+ * Supported input elements
+ */
+export type MediaElement = 
+  | HTMLImageElement 
+  | HTMLVideoElement 
+  | HTMLCanvasElement 
+  | NodeCanvasElement;
+
+/**
+ * Node.js Canvas Element
+ */
+export interface NodeCanvasElement {
+  width: number;
+  height: number;
+  getContext(contextId: string): CanvasRenderingContext2D | null;
+  toBuffer(mime?: string, config?: unknown): Buffer;
+}
+
+/**
+ * Supported environments
+ */
+export type Environment = 'browser' | 'node' | 'react-native';
+
+/**
+ * Detection configuration options
+ */
+export interface DetectionOptions {
+  /** Confidence threshold (0 to 1) */
+  scoreThreshold?: number;
+  /** Maximum number of faces to detect */
+  maxFaces?: number;
+  /** Enable tracking between frames */
+  enableTracking?: boolean;
+  /** Execution environment */
+  environment?: Environment;
+  /** Model type to use */
+  modelType?: ModelType | string;
+  /** TensorFlow runtime */
+  runtime?: TensorFlowRuntime;
+}
+
+/**
+ * Face detection result
  */
 export interface FaceDetection {
   detection: {
@@ -53,14 +102,15 @@ export interface FaceDetection {
 }
 
 /**
- * Conjunto de pontos de referência facial (landmarks)
+ * Facial landmarks (as a full mesh)
  */
 export interface FaceLandmarks {
-  positions: Point[];
+  meshPoints: Point3D[];
+  probability?: number[];
 }
 
 /**
- * Resultado de uma detecção facial com landmarks
+ * Face detection with landmarks (as a mesh)
  */
 export interface FaceDetectionWithLandmarks {
   detection: {
@@ -71,8 +121,54 @@ export interface FaceDetectionWithLandmarks {
 }
 
 /**
- * Interface para rastreamento de face (ID único quando enableTracking=true)
+ * Face with tracking ID
  */
 export interface TrackedFace extends FaceDetection {
-  trackingID?: number;
+  trackingID: number;
+}
+
+/**
+ * Face detection that may include tracking
+ */
+export type PossiblyTrackedFace = FaceDetection | TrackedFace;
+
+/**
+ * Check if a face has tracking ID
+ */
+export function isTrackedFace(face: PossiblyTrackedFace): face is TrackedFace {
+  return 'trackingID' in face && typeof (face as TrackedFace).trackingID === 'number';
+}
+
+/**
+ * Face detection with landmarks and tracking
+ */
+export interface TrackedFaceDetectionWithLandmarks extends FaceDetectionWithLandmarks {
+  trackingID: number;
+}
+
+/**
+ * Face detection with landmarks that may include tracking
+ */
+export type PossiblyTrackedFaceDetectionWithLandmarks = FaceDetectionWithLandmarks | TrackedFaceDetectionWithLandmarks;
+
+/**
+ * Check if a face with landmarks has tracking ID
+ */
+export function isTrackedFaceWithLandmarks(
+  face: PossiblyTrackedFaceDetectionWithLandmarks
+): face is TrackedFaceDetectionWithLandmarks {
+  return 'trackingID' in face && typeof (face as TrackedFaceDetectionWithLandmarks).trackingID === 'number';
+}
+
+/**
+ * Detection results
+ */
+export interface DetectionResult<T> {
+  faces: T[];
+  timing?: {
+    total: number;
+    preprocessing?: number;
+    inference?: number;
+    postprocessing?: number;
+  };
 } 

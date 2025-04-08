@@ -1,11 +1,11 @@
+/**
+ * Utility functions for image processing
+ */
 import { Box, Point } from '../types/types';
 
-/**
- * Classe com utilitários para manipulação de imagens e resultados de detecção
- */
 export class ImageUtils {
   /**
-   * Recorta uma face de uma imagem a partir da caixa delimitadora
+   * Crops a face from an image based on the bounding box
    */
   public static cropFace(
     canvas: HTMLCanvasElement,
@@ -14,7 +14,7 @@ export class ImageUtils {
   ): HTMLCanvasElement {
     const { x, y, width, height } = box;
     
-    // Aplicar margem (com limites para não ultrapassar as bordas)
+    // Apply margin (with limits to prevent going beyond the edges)
     const marginX = width * margin;
     const marginY = height * margin;
     
@@ -23,12 +23,12 @@ export class ImageUtils {
     const cropWidth = Math.min(canvas.width - offsetX, width + 2 * marginX);
     const cropHeight = Math.min(canvas.height - offsetY, height + 2 * marginY);
     
-    // Criar canvas para a face recortada
+    // Create canvas for the cropped face
     const faceCanvas = document.createElement('canvas');
     faceCanvas.width = cropWidth;
     faceCanvas.height = cropHeight;
     
-    // Recortar a região da face
+    // Crop the face region
     const ctx = faceCanvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(
@@ -42,7 +42,7 @@ export class ImageUtils {
   }
   
   /**
-   * Desenha as landmarks faciais em um canvas
+   * Draws facial landmarks on a canvas
    */
   public static drawLandmarks(
     canvas: HTMLCanvasElement,
@@ -63,7 +63,7 @@ export class ImageUtils {
   }
   
   /**
-   * Desenha uma caixa delimitadora em um canvas
+   * Draws a bounding box on a canvas
    */
   public static drawBox(
     canvas: HTMLCanvasElement,
@@ -82,20 +82,20 @@ export class ImageUtils {
   }
   
   /**
-   * Converte uma imagem ou vídeo para canvas
+   * Converts an image or video to canvas
    */
   public static elementToCanvas(
     element: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement
   ): HTMLCanvasElement {
-    // Se já é um canvas, apenas retornamos
+    // If it's already a canvas, just return it
     if (element instanceof HTMLCanvasElement) {
       return element;
     }
     
-    // Criamos um novo canvas
+    // Create a new canvas
     const canvas = document.createElement('canvas');
     
-    // Definimos as dimensões baseadas no tipo do elemento
+    // Set dimensions based on element type
     if (element instanceof HTMLVideoElement) {
       canvas.width = element.videoWidth;
       canvas.height = element.videoHeight;
@@ -104,7 +104,7 @@ export class ImageUtils {
       canvas.height = element.height;
     }
     
-    // Desenhamos o elemento no canvas
+    // Draw the element on the canvas
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(element, 0, 0);

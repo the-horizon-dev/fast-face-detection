@@ -10,7 +10,8 @@ export default {
     {
       file: 'dist/index.js',
       format: 'cjs',
-      sourcemap: true
+      sourcemap: true,
+      dynamicImportInCjs: true
     },
     {
       file: 'dist/index.esm.js',
@@ -20,13 +21,23 @@ export default {
   ],
   external: [
     '@tensorflow/tfjs-core', 
+    '@tensorflow/tfjs-backend-webgl',
+    '@tensorflow/tfjs-backend-cpu',
+    '@tensorflow/tfjs-converter',
+    '@tensorflow/tfjs-react-native',
     '@tensorflow-models/face-detection',
     '@tensorflow-models/face-landmarks-detection'
   ],
   plugins: [
     typescript({
       typescript: tsc,
-      clean: true
+      clean: true,
+      tsconfigOverride: {
+        exclude: ["tests/**/*", "node_modules/**/*"],
+        compilerOptions: {
+          module: "ESNext"
+        }
+      }
     })
   ]
 }; 
