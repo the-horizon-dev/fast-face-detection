@@ -89,6 +89,8 @@ export interface DetectionOptions {
   modelType?: ModelType | string;
   /** TensorFlow runtime */
   runtime?: TensorFlowRuntime;
+  /** Target width to downscale input images if they exceed this size. Set to 0 or undefined to disable. */
+  downscaleWidthThreshold?: number;
 }
 
 /**

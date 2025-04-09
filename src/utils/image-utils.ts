@@ -3,15 +3,19 @@
  */
 import { Box, Point } from '../types/types';
 
+// Define compatible input types for downscaling
+type DownscaleInput = HTMLImageElement | HTMLVideoElement | HTMLCanvasElement;
+
 export class ImageUtils {
   /**
    * Crops a face from an image based on the bounding box
+   * @returns An object containing the cropped canvas and the top-left offset used
    */
   public static cropFace(
     canvas: HTMLCanvasElement,
     box: Box,
     margin: number = 0
-  ): HTMLCanvasElement {
+  ): { croppedCanvas: HTMLCanvasElement; offsetX: number; offsetY: number } {
     const { x, y, width, height } = box;
     
     // Apply margin (with limits to prevent going beyond the edges)
@@ -38,7 +42,7 @@ export class ImageUtils {
       );
     }
     
-    return faceCanvas;
+    return { croppedCanvas: faceCanvas, offsetX, offsetY };
   }
   
   /**
@@ -111,5 +115,55 @@ export class ImageUtils {
     }
     
     return canvas;
+  }
+  
+  /**
+   * Downscales an image element to a target width, maintaining aspect ratio.
+   * Only works in browser environments.
+   * @param element The input image, video, or canvas.
+   * @param targetWidth The desired width for the downscaled image.
+   * @returns Object containing the downscaled canvas and the scaling factor used.
+   */
+  public static downscaleImage(
+    element: DownscaleInput,
+    targetWidth: number
+  ): { downscaledCanvas: HTMLCanvasElement; scaleFactor: number } {
+    if (typeof document === 'undefined') {
+      throw new Error('Image downscaling is only supported in browser environments.');
+    }
+
+    const originalCanvas = this.elementToCanvas(element);
+    const originalWidth = originalCanvas.width;
+    const originalHeight = originalCanvas.height;
+
+    // If already smaller than target, return original (or copy?)
+    if (originalWidth <= targetWidth) {
+      // Return a copy to avoid modifying the original if it was a canvas
+      const copyCanvas = document.createElement('canvas');
+      copyCanvas.width = originalWidth;
+      copyCanvas.height = originalHeight;
+      const ctx = copyCanvas.getContext('2d');
+      if (ctx) {
+          ctx.drawImage(originalCanvas, 0, 0);
+      }
+      return { downscaledCanvas: copyCanvas, scaleFactor: 1 };
+    }
+
+    const scaleFactor = targetWidth / originalWidth;
+    const targetHeight = Math.round(originalHeight * scaleFactor);
+
+    const downscaledCanvas = document.createElement('canvas');
+    downscaledCanvas.width = targetWidth;
+    downscaledCanvas.height = targetHeight;
+
+    const ctx = downscaledCanvas.getContext('2d');
+    if (ctx) {
+      // Use drawImage for built-in browser downscaling (usually decent quality)
+      ctx.drawImage(originalCanvas, 0, 0, targetWidth, targetHeight);
+    } else {
+      throw new Error('Failed to get 2D context for downscaling.');
+    }
+
+    return { downscaledCanvas, scaleFactor };
   }
 } 

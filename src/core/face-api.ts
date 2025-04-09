@@ -10,7 +10,8 @@ import {
   PossiblyTrackedFace,
   PossiblyTrackedFaceDetectionWithLandmarks,
   DetectionResult,
-  Point3D
+  Point3D,
+  Box
 } from '../types/types';
 import { FaceDetector } from './face-detector';
 import { LandmarkDetector } from './landmark-detector';
@@ -18,6 +19,7 @@ import { FaceDetectionError, ErrorCode } from '../types/errors';
 import { ValidationService } from '../services/validation-service';
 import { Logger } from '../services/logger-service';
 import { ConfigurationService } from '../services/configuration-service';
+import { ImageUtils } from '../utils/image-utils';
 
 /**
  * Main API class for face detection functionality.
@@ -42,6 +44,8 @@ export class FaceAPI {
    */
   constructor(options?: DetectionOptions) {
     this.options = options || ConfigurationService.createDefaultOptions('browser');
+    // Default downscale threshold (e.g., 640px width). 0 means disabled.
+    this.options.downscaleWidthThreshold = this.options.downscaleWidthThreshold ?? 640;
     this.faceDetector = new FaceDetector(this.options);
     this.landmarkDetector = new LandmarkDetector(this.options);
     Logger.info('FaceAPI initialized');
@@ -60,6 +64,30 @@ export class FaceAPI {
     ValidationService.validateDisposed(this.isDisposed);
     ValidationService.validateInput(input);
     
+    const originalInput = input; // Keep original for potential cropping
+    let processedInput: MediaElement = input;
+    let scaleFactor = 1;
+    const isBrowserEnv = typeof document !== 'undefined';
+    const isHtmlInput = input instanceof HTMLCanvasElement || input instanceof HTMLImageElement || input instanceof HTMLVideoElement;
+
+    // Downscale if enabled, in browser, and input is compatible
+    if (this.options.downscaleWidthThreshold && 
+        this.options.downscaleWidthThreshold > 0 && 
+        isBrowserEnv && 
+        isHtmlInput) {
+      try {
+        const { downscaledCanvas, scaleFactor: calculatedScale } = ImageUtils.downscaleImage(
+          input as HTMLImageElement | HTMLVideoElement | HTMLCanvasElement,
+          this.options.downscaleWidthThreshold
+        );
+        processedInput = downscaledCanvas;
+        scaleFactor = calculatedScale;
+        Logger.debug(`Downscaled input image with factor: ${scaleFactor}`);
+      } catch (e) {
+        Logger.warn('Failed to downscale input, proceeding with original.', e as Error);
+      }
+    }
+
     if (options) {
       this.updateOptions(options);
     }
@@ -67,7 +95,12 @@ export class FaceAPI {
     const startTime = performance.now();
     try {
       // Get detection result with timing already included
-      const detectionResult = await this.faceDetector.detectFaces(input);
+      const detectionResult = await this.faceDetector.detectFaces(processedInput);
+      
+      // Upscale results if downscaling occurred
+      if (scaleFactor !== 1) {
+        detectionResult.faces = this.upscaleFaces(detectionResult.faces, scaleFactor);
+      }
       
       const duration = performance.now() - startTime;
       Logger.performance('detectFaces', duration);
@@ -112,14 +145,38 @@ export class FaceAPI {
     ValidationService.validateDisposed(this.isDisposed);
     ValidationService.validateInput(input);
     
+    const originalInput = input; // Keep original for cropping
+    let processedInput: MediaElement = input;
+    let scaleFactor = 1;
+    const isBrowserEnv = typeof document !== 'undefined';
+    const isHtmlInput = input instanceof HTMLCanvasElement || input instanceof HTMLImageElement || input instanceof HTMLVideoElement;
+
+    // Downscale if enabled, in browser, and input is compatible
+    if (this.options.downscaleWidthThreshold && 
+        this.options.downscaleWidthThreshold > 0 && 
+        isBrowserEnv && 
+        isHtmlInput) {
+      try {
+        const { downscaledCanvas, scaleFactor: calculatedScale } = ImageUtils.downscaleImage(
+          input as HTMLImageElement | HTMLVideoElement | HTMLCanvasElement,
+          this.options.downscaleWidthThreshold
+        );
+        processedInput = downscaledCanvas;
+        scaleFactor = calculatedScale;
+        Logger.debug(`Downscaled input image with factor: ${scaleFactor} for landmark detection`);
+      } catch (e) {
+        Logger.warn('Failed to downscale input for landmarks, proceeding with original.', e as Error);
+      }
+    }
+
     if (options) {
       this.updateOptions(options);
     }
     
     const startTime = performance.now();
     try {
-      // First, detect the faces
-      const faceResult = await this.faceDetector.detectFaces(input);
+      // First, detect the faces on the (potentially downscaled) input
+      const faceResult = await this.faceDetector.detectFaces(processedInput);
       
       // If no faces were detected, return empty result with timing
       if (!faceResult.faces || faceResult.faces.length === 0) {
@@ -134,23 +191,82 @@ export class FaceAPI {
         };
       }
       
+      // --- Upscale Face Bounding Boxes --- 
+      // Upscale face boxes BEFORE using them for cropping or mapping
+      let upscaledFaces: PossiblyTrackedFace[];
+      if (scaleFactor !== 1) {
+        upscaledFaces = this.upscaleFaces(faceResult.faces, scaleFactor);
+      } else {
+        upscaledFaces = faceResult.faces;
+      }
+      // --- End Upscale Face Bounding Boxes --- 
+
       // Start landmark detection timing
       const landmarkStartTime = performance.now();
       
       // Handle single face optimization when maxFaces=1
       if (faceResult.faces.length > 1 && 
           this.landmarkDetector['config']?.maxFaces === 1) {
-        // Sort faces by confidence and take the highest
-        const sortedFaces = [...faceResult.faces].sort(
+        let adjustedLandmarks: Array<{ meshPoints: Point3D[] }>;
+
+        // Sort faces by confidence and take the highest (using upscaled faces)
+        const sortedFaces = [...upscaledFaces].sort(
           (a, b) => b.detection.score - a.detection.score
         );
         const highestConfidenceFace = sortedFaces[0];
-        
-        const landmarks = await this.landmarkDetector.detectLandmarks(input);
+
+        // Check compatibility with the ORIGINAL input for cropping
+        const isCompatibleInput = originalInput instanceof HTMLCanvasElement || originalInput instanceof HTMLImageElement || originalInput instanceof HTMLVideoElement;
+
+        if (isBrowserEnv && isCompatibleInput) {
+          Logger.debug('Applying single-face landmark cropping optimization.');
+          // We know input is one of the HTML*Element types here
+          // Use the ORIGINAL input for high-resolution cropping
+          const originalCanvas = ImageUtils.elementToCanvas(originalInput as HTMLImageElement | HTMLVideoElement | HTMLCanvasElement);
+
+          // Crop the face region (consider adding a margin option)
+          // Use the UPSCALED bounding box for cropping the ORIGINAL image
+          const { croppedCanvas, offsetX, offsetY } = ImageUtils.cropFace(
+            originalCanvas,
+            highestConfidenceFace.detection.box,
+            0 // No margin for now
+          );
+          
+          // Detect landmarks only on the cropped face
+          const landmarksOnCropped = await this.landmarkDetector.detectLandmarks(croppedCanvas);
+          
+          // Adjust landmark coordinates back to the original image space
+          adjustedLandmarks = landmarksOnCropped.map(landmarkSet => ({
+            meshPoints: landmarkSet.meshPoints.map(p => ({
+              // Landmarks are detected on the high-res crop,
+              // offsetX/Y are relative to the original image.
+              x: p.x + offsetX,
+              y: p.y + offsetY,
+              z: p.z
+            }))
+          }));
+        } else {
+          // Fallback: Node.js environment or incompatible input (e.g., NodeCanvasElement)
+          if (!isBrowserEnv) {
+            Logger.debug('Skipping landmark cropping optimization (non-browser or incompatible input).');
+          } else if (!isCompatibleInput) {
+            Logger.debug('Skipping landmark cropping optimization (incompatible input type).');
+          }
+
+          // Fallback: Detect landmarks on the potentially downscaled input
+          const landmarkResultSets = await this.landmarkDetector.detectLandmarks(processedInput);
+
+          // Upscale landmarks if needed
+          if (scaleFactor !== 1) {
+            adjustedLandmarks = this.upscaleLandmarks(landmarkResultSets, scaleFactor);
+          } else {
+            adjustedLandmarks = landmarkResultSets;
+          }
+        }
         
         const faceWithLandmarks = {
           ...highestConfidenceFace,
-          landmarks: landmarks[0] || { meshPoints: [] }
+          landmarks: adjustedLandmarks[0] || { meshPoints: [] }
         };
         
         const landmarkTime = performance.now() - landmarkStartTime;
@@ -169,8 +285,18 @@ export class FaceAPI {
         };
       } else {
         // Standard case for multiple faces
-        const landmarks = await this.landmarkDetector.detectLandmarks(input);
-        const facesWithLandmarks = this.mapFacesToLandmarks(faceResult.faces, landmarks);
+        // For multiple faces, we still need to process the whole image
+
+        // Detect landmarks on the (potentially downscaled) input
+        let landmarkResultSets = await this.landmarkDetector.detectLandmarks(processedInput);
+
+        // Upscale landmarks if needed
+        if (scaleFactor !== 1) {
+          landmarkResultSets = this.upscaleLandmarks(landmarkResultSets, scaleFactor);
+        }
+
+        // Map the UPSCALED faces to the UPSCALED landmarks
+        const facesWithLandmarks = this.mapFacesToLandmarks(upscaledFaces, landmarkResultSets);
         
         const landmarkTime = performance.now() - landmarkStartTime;
         const totalTime = performance.now() - startTime;
@@ -202,18 +328,18 @@ export class FaceAPI {
   /**
    * Maps face detections to landmarks by combining them
    * @param faces Detected face objects
-   * @param landmarks Detected landmark sets
+   * @param landmarkResultSets Detected landmark sets
    * @returns Combined faces with landmarks
    * @private
    */
   private mapFacesToLandmarks(
     faces: PossiblyTrackedFace[],
-    landmarks: Array<{ meshPoints: Point3D[] }>
+    landmarkResultSets: Array<{ meshPoints: Point3D[] }>
   ): PossiblyTrackedFaceDetectionWithLandmarks[] {
     return faces.map((face, index) => {
       return {
         ...face,
-        landmarks: landmarks[index] || { meshPoints: [] }
+        landmarks: landmarkResultSets[index] || { meshPoints: [] }
       };
     });
   }
@@ -230,6 +356,8 @@ export class FaceAPI {
     }
     
     this.options = {...this.options, ...options};
+    // Ensure downscale threshold is updated if provided
+    this.options.downscaleWidthThreshold = options.downscaleWidthThreshold ?? this.options.downscaleWidthThreshold;
     this.faceDetector.updateOptions(options);
     this.landmarkDetector.updateOptions(options);
   }
@@ -266,5 +394,48 @@ export class FaceAPI {
       
       Logger.debug('FaceAPI resources disposed');
     }
+  }
+
+  /**
+   * Upscales face bounding boxes by a given factor.
+   * @private
+   */
+  private upscaleBox(box: Box, scaleFactor: number): Box {
+    return {
+      x: box.x / scaleFactor,
+      y: box.y / scaleFactor,
+      width: box.width / scaleFactor,
+      height: box.height / scaleFactor,
+    };
+  }
+
+  /**
+   * Upscales a list of faces (bounding boxes) by a given factor.
+   * @private
+   */
+  private upscaleFaces(faces: PossiblyTrackedFace[], scaleFactor: number): PossiblyTrackedFace[] {
+    return faces.map(face => ({
+      ...face,
+      detection: {
+        ...face.detection,
+        box: this.upscaleBox(face.detection.box, scaleFactor),
+      },
+    }));
+  }
+
+  /**
+   * Upscales landmark points by a given factor.
+   * @private
+   */
+  private upscaleLandmarks(landmarkSets: Array<{ meshPoints: Point3D[] }>, scaleFactor: number): Array<{ meshPoints: Point3D[] }> {
+    return landmarkSets.map(landmarkSet => ({
+      ...landmarkSet,
+      meshPoints: landmarkSet.meshPoints.map(p => ({
+        x: p.x / scaleFactor,
+        y: p.y / scaleFactor,
+        // Z coordinate is not scaled
+        z: p.z,
+      })),
+    }));
   }
 } 
