@@ -91,23 +91,23 @@ export class Logger {
   }
   
   /**
-   * Logs a debug message with optional additional data.
-   * These messages only appear if debug mode is enabled.
-   * Use this for detailed diagnostic information useful during development.
+   * Logs a debug message with optional additional arguments.
+   * Debug messages are only shown when debug mode is enabled.
    * 
    * @param {string} message - The debug message to display
-   * @param {...any} args - Additional values to log
+   * @param {...unknown[]} args - Optional additional arguments to log
    * 
    * @example
-   * Logger.debug('Face detection parameters', { 
-   *   minConfidence: 0.7, 
-   *   model: 'MediaPipe'
-   * });
+   * // Log a simple debug message
+   * Logger.debug('Processing step 1');
+   * 
+   * // Log with additional data
+   * Logger.debug('Face detected', { x: 100, y: 200 });
    */
-  static debug(message: string, ...args: any[]): void {
-    if (this.isDebugEnabled) {
-      console.debug(`[Face Detection Debug] ${message}`, ...args);
-    }
+  static debug(message: string, ...args: unknown[]): void {
+    if (!this.isDebugEnabled) return;
+    
+    console.debug(`[DEBUG] ${message}`, ...args);
   }
   
   /**

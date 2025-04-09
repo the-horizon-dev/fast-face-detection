@@ -31,11 +31,11 @@ async function loadBackend(backend: 'webgl' | 'cpu' | 'node'): Promise<boolean> 
     } else if (backend === 'node') {
       try {
         // Using try/catch with require instead of dynamic import
-        const nodeBackend = require('@tensorflow/tfjs-node');
+        require('@tensorflow/tfjs-node');
         Logger.debug('Node.js backend loaded');
         loadedBackends.add(backend);
         return true;
-      } catch (e) {
+      } catch {
         // Don't throw here, just log the issue and signal to fall back
         Logger.info('For better performance in Node.js, install @tensorflow/tfjs-node package');
         return false;
@@ -53,7 +53,7 @@ async function loadBackend(backend: 'webgl' | 'cpu' | 'node'): Promise<boolean> 
  */
 interface TFJSReactNative {
   ready: () => Promise<void>;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

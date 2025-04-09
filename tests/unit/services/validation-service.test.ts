@@ -124,8 +124,8 @@ describe('ValidationService', () => {
     });
     
     test('should throw for scoreThreshold < 0', () => {
-      mockedValidationService.validateOptions.mockImplementation((options) => {
-        if (options.scoreThreshold !== undefined && options.scoreThreshold < 0) {
+      mockedValidationService.validateOptions.mockImplementation((options: Record<string, unknown>) => {
+        if (options.scoreThreshold !== undefined && typeof options.scoreThreshold === 'number' && options.scoreThreshold < 0) {
           throw new FaceDetectionError('Invalid scoreThreshold');
         }
       });
@@ -140,8 +140,8 @@ describe('ValidationService', () => {
     });
     
     test('should throw for scoreThreshold > 1', () => {
-      mockedValidationService.validateOptions.mockImplementation((options) => {
-        if (options.scoreThreshold !== undefined && options.scoreThreshold > 1) {
+      mockedValidationService.validateOptions.mockImplementation((options: Record<string, unknown>) => {
+        if (options.scoreThreshold !== undefined && typeof options.scoreThreshold === 'number' && options.scoreThreshold > 1) {
           throw new FaceDetectionError('Invalid scoreThreshold');
         }
       });
@@ -156,8 +156,8 @@ describe('ValidationService', () => {
     });
     
     test('should throw for maxFaces < 1', () => {
-      mockedValidationService.validateOptions.mockImplementation((options) => {
-        if (options.maxFaces !== undefined && options.maxFaces < 1) {
+      mockedValidationService.validateOptions.mockImplementation((options: Record<string, unknown>) => {
+        if (options.maxFaces !== undefined && typeof options.maxFaces === 'number' && options.maxFaces < 1) {
           throw new FaceDetectionError('Invalid maxFaces');
         }
       });

@@ -41,7 +41,7 @@ export abstract class BaseDetector {
     }
 
     try {
-      await initTensorflowBackend(this.environment as any);
+      await initTensorflowBackend(this.environment);
     } catch (error) {
       throw new FaceDetectionError(
         `Failed to initialize internal resources: ${error instanceof Error ? error.message : 'Unknown error'}`

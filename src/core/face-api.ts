@@ -64,7 +64,7 @@ export class FaceAPI {
     ValidationService.validateDisposed(this.isDisposed);
     ValidationService.validateInput(input);
     
-    const originalInput = input; // Keep original for potential cropping
+    const _originalInput = input; // Keep original for potential cropping
     let processedInput: MediaElement = input;
     let scaleFactor = 1;
     const isBrowserEnv = typeof document !== 'undefined';

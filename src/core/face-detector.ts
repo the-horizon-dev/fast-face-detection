@@ -9,7 +9,8 @@ import {
   DetectionOptions, 
   PossiblyTrackedFace, 
   MediaElement, 
-  DetectionResult
+  DetectionResult,
+  FaceDetection
 } from '../types/types';
 import { 
   FaceDetectorError, 
@@ -19,7 +20,6 @@ import {
 import { BaseDetector } from './base-detector';
 import { Logger } from '../services/logger-service';
 import { 
-  MediaPipeFaceDetectorMediaPipeModelConfig,
   MediaPipeFaceDetectorTfjsModelConfig 
 } from '@tensorflow-models/face-detection';
 
@@ -27,18 +27,17 @@ import {
  * Maps library configuration to TensorFlow model configuration for BlazeFace short-range
  */
 function mapConfigToTfConfig(config: DetectionOptions): MediaPipeFaceDetectorTfjsModelConfig {
-  const tfConfig: MediaPipeFaceDetectorTfjsModelConfig = {
+  const tfConfig: MediaPipeFaceDetectorTfjsModelConfig & { scoreThreshold?: number } = {
     runtime: 'tfjs',
     modelType: 'full',
   };
   
   // Set score threshold if provided
   if (config.scoreThreshold !== undefined) {
-    // Use type assertion since the property might not be in the type definition
-    (tfConfig as any).scoreThreshold = config.scoreThreshold;
+    tfConfig.scoreThreshold = config.scoreThreshold;
   } else {
     // Default to a reasonable threshold if not specified
-    (tfConfig as any).scoreThreshold = 0.5;
+    tfConfig.scoreThreshold = 0.5;
   }
   
   // Set max faces if provided
@@ -132,14 +131,14 @@ export class FaceDetector extends BaseDetector {
    * Maps detected faces to the internal format
    */
   private mapDetectedFaces(detectedFaces: Array<faceDetection.Face>): PossiblyTrackedFace[] {
-    return detectedFaces.map(face => {
+    return detectedFaces.map((face: faceDetection.Face) => {
       console.log('[FaceDetector] Processing individual face object:', JSON.stringify(face, null, 2));
       
       // Log individual potential score sources
-      const rawScore = (face as any).score;
-      const rawConfidence = (face as any).confidence;
+      const rawScore = (face as { score?: number }).score;
+      const rawConfidence = (face as { confidence?: number }).confidence;
       const keypointScore = (face.keypoints && face.keypoints[0]?.score);
-      const probability = (face as any).probability && (face as any).probability[0];
+      const probability = (face as { probability?: number[] })?.probability?.[0];
       console.log(`[FaceDetector] Score sources: rawScore=${rawScore}, rawConfidence=${rawConfidence}, keypointScore=${keypointScore}, probability=${probability}`);
       
       // Try to get the score from various possible sources in the MediaPipe FaceDetector model
@@ -181,24 +180,26 @@ export class FaceDetector extends BaseDetector {
       
       console.log('[FaceDetector] Calculated score for this face:', score);
       
-      const detection = {
-        score: score,
-        box: {
-          x: face.box.xMin,
-          y: face.box.yMin,
-          width: face.box.width,
-          height: face.box.height
+      const detection: FaceDetection = {
+        detection: {
+          box: {
+            x: face.box.xMin,
+            y: face.box.yMin,
+            width: face.box.width,
+            height: face.box.height
+          },
+          score: score
         }
       };
       
-      if ('trackingID' in face && face.trackingID !== undefined) {
+      if (this.options.enableTracking && (face as { trackingID?: number }).trackingID !== undefined) {
         return {
-          detection,
-          trackingID: face.trackingID
+          ...detection,
+          trackingID: (face as { trackingID?: number }).trackingID
         };
       }
       
-      return { detection };
+      return detection;
     });
   }
 
@@ -240,7 +241,7 @@ export class FaceDetector extends BaseDetector {
       }
       
       // Perform face detection
-      const detectedFaces = await this.detector!.estimateFaces(input as any);
+      const detectedFaces = await this.detector!.estimateFaces(input as HTMLImageElement | HTMLVideoElement | HTMLCanvasElement);
       
       console.log(`[FaceDetector] Raw detected faces array from estimateFaces: ${JSON.stringify(detectedFaces, null, 2)}`);
       console.log(`[FaceDetector] Number of faces detected: ${detectedFaces.length}`);

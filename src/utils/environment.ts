@@ -44,22 +44,17 @@ export function isWebGLSupported(): boolean {
     const gl = canvas.getContext('webgl') || 
                canvas.getContext('experimental-webgl');
     return gl !== null;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
 
 /**
- * Returns environment information for diagnostics
+ * Gets information about the current environment
  */
-export function getEnvironmentInfo() {
-  const env = detectEnvironment();
-  const supportsWebGL = isWebGLSupported();
-  
+export function getEnvironmentInfo(): { environment: Environment; webglSupported: boolean } {
   return {
-    environment: env,
-    isWebGLSupported: supportsWebGL,
-    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-    platform: typeof navigator !== 'undefined' ? navigator.platform : 'unknown',
+    environment: detectEnvironment(),
+    webglSupported: isWebGLSupported()
   };
 } 

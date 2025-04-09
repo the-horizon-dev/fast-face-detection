@@ -45,13 +45,19 @@ export class ValidationService {
   /**
    * Validates if the options are valid
    */
-  static validateOptions(options: Record<string, any>): void {
-    if (options.scoreThreshold !== undefined && (options.scoreThreshold < 0 || options.scoreThreshold > 1)) {
-      throw new FaceDetectionError('scoreThreshold must be between 0 and 1');
+  static validateOptions(options: Record<string, unknown>): void {
+    const scoreThreshold = options.scoreThreshold;
+    if (scoreThreshold !== undefined && typeof scoreThreshold === 'number') {
+      if (scoreThreshold < 0 || scoreThreshold > 1) {
+        throw new FaceDetectionError('scoreThreshold must be between 0 and 1');
+      }
     }
-    
-    if (options.maxFaces !== undefined && options.maxFaces < 1) {
-      throw new FaceDetectionError('maxFaces must be greater than 0');
+
+    const maxFaces = options.maxFaces;
+    if (maxFaces !== undefined && typeof maxFaces === 'number') {
+      if (maxFaces < 1) {
+        throw new FaceDetectionError('maxFaces must be greater than 0');
+      }
     }
   }
 } 

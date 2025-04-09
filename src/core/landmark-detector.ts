@@ -6,13 +6,8 @@ import '@tensorflow/tfjs-core';
 import '@tensorflow/tfjs-backend-webgl';
 import { BaseDetector } from './base-detector';
 import { LandmarkDetectorError, ModelInitializationError } from '../types/errors';
-import { MediaElement, Point, DetectionOptions, Point3D } from '../types/types';
+import { MediaElement, DetectionOptions, Point3D } from '../types/types';
 import { Logger } from '../services/logger-service';
-import { 
-  FACIAL_LANDMARK_INDEXES, 
-  FACIAL_LANDMARK_INDEXES_BY_GROUP, 
-  FacialLandmarkGroup,
-} from '../constants/landmarks';
 import { 
   FaceLandmarksDetector,
   Face,
@@ -98,10 +93,10 @@ export class LandmarkDetector extends BaseDetector {
    * Maps TensorFlow.js model keypoints to our standard Point3D format
    */
   private processTensorflowKeypoints(meshPoints: Keypoint[]): Point3D[] {
-    return meshPoints.map(point => ({
-      x: point.x ?? 0,
-      y: point.y ?? 0,
-      z: point.z ?? 0,
+    return meshPoints.map((point: Keypoint) => ({
+      x: point.x,
+      y: point.y,
+      z: point.z || 0
     }));
   }
 
@@ -112,49 +107,24 @@ export class LandmarkDetector extends BaseDetector {
     input: MediaElement
   ): Promise<Array<FaceLandmarkResult>> {
     if (this.isDisposed) {
-      throw new LandmarkDetectorError('Detector has been disposed and cannot be used again');
-    }
-
-    if (!input) {
-      throw new LandmarkDetectorError('Invalid input: media element cannot be null or undefined');
+      throw new LandmarkDetectorError('Detector has been disposed');
     }
 
     await this.ensureDetectorLoaded();
-    
+
+    if (!this.detector) {
+      throw new ModelInitializationError('Detector not initialized');
+    }
+
     try {
-      // Configure estimation parameters based on the detector settings
-      const estimationConfig = {
+      const faces = await this.detector.estimateFaces(input as HTMLImageElement | HTMLVideoElement | HTMLCanvasElement, {
         flipHorizontal: this.config.flipHorizontal,
         staticImageMode: this.config.staticImageMode
-      };
-      
-      // Run face detection using the non-null asserted detector and cast input
-      const facesWithMesh = await this.detector!.estimateFaces(input as any, estimationConfig);
-      
-      if (!Array.isArray(facesWithMesh)) {
-        Logger.warn('Detector returned an unexpected value');
-        return [];
-      }
-      
-      return facesWithMesh.map((mesh: Face) => {
-        if (!mesh || typeof mesh !== 'object') {
-          Logger.warn('Invalid mesh object');
-          return { meshPoints: [] };
-        }
-        
-        // TFJS runtime returns keypoints array, while MediaPipe runtime returns differently
-        const keypoints: Keypoint[] = mesh.keypoints || [];
-        
-        if (!Array.isArray(keypoints) || keypoints.length === 0) {
-          Logger.warn('Mesh with invalid or empty keypoints');
-          return { meshPoints: [] };
-        }
-        
-        // Process all keypoints into the full mesh
-        const processedMesh = this.processTensorflowKeypoints(keypoints);
-        
-        return { meshPoints: processedMesh };
       });
+
+      return faces.map((face: Face) => ({
+        meshPoints: this.processTensorflowKeypoints(face.keypoints)
+      }));
     } catch (error) {
       throw new LandmarkDetectorError(
         `Failed to detect landmarks: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -171,7 +141,7 @@ export class LandmarkDetector extends BaseDetector {
     }
     
     if (this.options.scoreThreshold !== undefined) {
-      (this.config as any).scoreThreshold = this.options.scoreThreshold;
+      (this.config as { scoreThreshold?: number }).scoreThreshold = this.options.scoreThreshold;
     }
     
     if (this.options.enableTracking !== undefined) {

@@ -54,12 +54,15 @@
     "@tensorflow/tfjs-node": "^4.22.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.24.0",
     "@jest/globals": "^29.7.0",
     "@tensorflow/tfjs-react-native": "^1.0.0",
     "@types/isomorphic-fetch": "^0.0.39",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.14.0",
-    "canvas": "^3.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.29.1",
+    "@typescript-eslint/parser": "^8.29.1",
+    "canvas": "^2.11.2",
     "eslint": "^9.24.0",
     "isomorphic-fetch": "^3.0.0",
     "jest": "^29.7.0",

@@ -100,7 +100,7 @@ describe('Logger Service', () => {
       Logger.debug(message);
       
       expect(console.debug).toHaveBeenCalledWith(
-        '[Face Detection Debug] Test debug message'
+        '[DEBUG] Test debug message'
       );
     });
     
@@ -114,7 +114,7 @@ describe('Logger Service', () => {
       Logger.debug(message, additionalData);
       
       expect(console.debug).toHaveBeenCalledWith(
-        '[Face Detection Debug] Test debug message',
+        '[DEBUG] Test debug message',
         additionalData
       );
     });
@@ -160,7 +160,7 @@ describe('Logger Service', () => {
       // Test debug mode when enabled
       Logger.debug('Should be logged');
       expect(console.debug).toHaveBeenCalledWith(
-        '[Face Detection Debug] Should be logged'
+        '[DEBUG] Should be logged'
       );
     });
     

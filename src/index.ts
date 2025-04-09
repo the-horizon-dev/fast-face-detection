@@ -22,13 +22,13 @@ let currentEnvironment: Environment = 'browser';
 /**
  * Initializes the backend
  */
-const initBackend = async () => {
+const initBackend = async (): Promise<void> => {
   try {
     currentEnvironment = detectEnvironment();
     Logger.debug(`Detected environment: ${currentEnvironment}`);
     await initTensorflowBackend(currentEnvironment);
   } catch (error) {
-    Logger.warn('Error initializing internal resources', error as Error);
+    Logger.warn('Error initializing internal resources', error instanceof Error ? error : new Error(String(error)));
   }
 };
 
@@ -63,9 +63,9 @@ export const mediapipeFace = {
     const result = await api.detectFaces(input);
     
     if (withTiming) {
-      return result as any;
+      return result as T extends true ? DetectionResult<PossiblyTrackedFace> : PossiblyTrackedFace[];
     } else {
-      return result.faces as any;
+      return result.faces as T extends true ? DetectionResult<PossiblyTrackedFace> : PossiblyTrackedFace[];
     }
   },
   
@@ -81,9 +81,9 @@ export const mediapipeFace = {
     const result = await api.detectFacesWithLandmarks(input);
     
     if (withTiming) {
-      return result as any;
+      return result as T extends true ? DetectionResult<PossiblyTrackedFaceDetectionWithLandmarks> : PossiblyTrackedFaceDetectionWithLandmarks[];
     } else {
-      return result.faces as any;
+      return result.faces as T extends true ? DetectionResult<PossiblyTrackedFaceDetectionWithLandmarks> : PossiblyTrackedFaceDetectionWithLandmarks[];
     }
   },
   
@@ -139,9 +139,6 @@ export * from './core';
 
 // Export utilities
 export * from './utils';
-
-// Export constants
-export * from './constants';
 
 // Export services
 export * from './services'; 
