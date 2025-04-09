@@ -41,7 +41,8 @@ export enum InputType {
  */
 export enum ModelType {
   MEDIAPIPE_FACE = 'mediapipe',
-  SHORT = 'short'
+  SHORT = 'short',
+  FULL = 'full'
 }
 
 /**

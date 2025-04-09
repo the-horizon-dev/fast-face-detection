@@ -211,7 +211,9 @@ export class FaceAPI {
 
         // Sort faces by confidence and take the highest (using upscaled faces)
         const sortedFaces = [...upscaledFaces].sort(
-          (a, b) => b.detection.score - a.detection.score
+          // (a, b) => b.detection.score - a.detection.score // Original sort by score (now 0)
+          // Sort by bounding box area (width * height) instead
+          (a, b) => (b.detection.box.width * b.detection.box.height) - (a.detection.box.width * a.detection.box.height)
         );
         const highestConfidenceFace = sortedFaces[0];
 

@@ -1,6 +1,6 @@
 {
   "name": "@the-horizon-dev/fast-face-detection",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Fast face detection package using TensorFlow.js MediaPipe models",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -59,7 +59,7 @@
     "@types/isomorphic-fetch": "^0.0.39",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.14.0",
-    "canvas": "^2.11.2",
+    "canvas": "^3.1.0",
     "eslint": "^9.24.0",
     "isomorphic-fetch": "^3.0.0",
     "jest": "^29.7.0",
