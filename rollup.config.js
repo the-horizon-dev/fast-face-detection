@@ -24,7 +24,6 @@ export default {
     '@tensorflow/tfjs-backend-webgl',
     '@tensorflow/tfjs-backend-cpu',
     '@tensorflow/tfjs-converter',
-    '@tensorflow/tfjs-react-native',
     '@tensorflow-models/face-detection',
     '@tensorflow-models/face-landmarks-detection'
   ],

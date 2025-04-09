@@ -14,13 +14,6 @@ export function detectEnvironment(): Environment {
     return 'node';
   }
   
-  // Check if we are in a React Native environment
-  if (typeof navigator !== 'undefined' && 
-      typeof navigator.userAgent === 'string' &&
-      navigator.userAgent.includes('ReactNative')) {
-    return 'react-native';
-  }
-  
   // Check if we are in a browser environment
   if (typeof window !== 'undefined' && 
       typeof document !== 'undefined') {

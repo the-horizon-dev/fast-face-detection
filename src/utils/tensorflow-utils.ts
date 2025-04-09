@@ -49,99 +49,42 @@ async function loadBackend(backend: 'webgl' | 'cpu' | 'node'): Promise<boolean> 
 }
 
 /**
- * Type definition for the tfjs-react-native module
- */
-interface TFJSReactNative {
-  ready: () => Promise<void>;
-  [key: string]: unknown;
-}
-
-/**
  * Initializes the appropriate TensorFlow.js backend
  */
 export async function initTensorflowBackend(environment: Environment): Promise<void> {
   // Check if the backend is already initialized
-  if (!tf.getBackend()) {
-    Logger.debug('Initializing internal resources...');
-    
-    // Select appropriate backend based on environment
-    if (environment === 'node') {
-      try {
-        // For Node.js, try to use the specialized Node.js backend first
-        const nodeBackendLoaded = await loadBackend('node');
-        
-        // If tfjs-node isn't available or failed to load, fall back to CPU
-        if (!nodeBackendLoaded) {
-          await loadBackend('cpu');
-          await tf.setBackend('cpu');
-          Logger.debug('Using CPU backend in Node.js environment');
-        } else {
-          Logger.debug('Using Node.js native TensorFlow backend');
-        }
-      } catch (error) {
-        // Last resort fallback if everything fails
-        Logger.warn('Error initializing resources in Node.js, attempting CPU fallback', error as Error);
-        try {
-          await loadBackend('cpu');
-          await tf.setBackend('cpu');
-        } catch (cpuError) {
-          Logger.error('Failed to initialize CPU backend as fallback', cpuError as Error);
-          throw new Error(`Failed to initialize TensorFlow in Node.js: ${(error as Error).message}`);
-        }
+  if (tf.getBackend()) {
+    return;
+  }
+
+  if (environment === 'node') {
+    try {
+      await loadBackend('node');
+      await tf.setBackend('node');
+    } catch (error) {
+      Logger.warn('Node backend unavailable, falling back to CPU', error as Error);
+      await loadBackend('cpu');
+      await tf.setBackend('cpu');
+    }
+  } else {
+    // Browser - try WebGL first, with fallback to CPU
+    try {
+      const webglLoaded = await loadBackend('webgl');
+      if (webglLoaded) {
+        await tf.setBackend('webgl');
+      } else {
+        throw new Error('WebGL backend loading failed');
       }
-    } else if (environment === 'react-native') {
+    } catch (error) {
+      Logger.warn('WebGL unavailable, using CPU as alternative', error as Error);
       try {
-        let reactNativeModule: TFJSReactNative | null = null;
-        
-        try {
-          const module = await import('@tensorflow/tfjs-react-native');
-          reactNativeModule = module as unknown as TFJSReactNative;
-        } catch (e) {
-          Logger.warn('Unable to import tfjs-react-native module', e as Error);
-          reactNativeModule = null;
-        }
-        
-        if (!reactNativeModule) {
-          throw new Error('Failed to load module for React Native - ensure @tensorflow/tfjs-react-native is installed');
-        }
-        
-        if (typeof reactNativeModule.ready === 'function') {
-          await reactNativeModule.ready();
-          Logger.debug('Resources for React Native initialized successfully');
-        } else {
-          throw new Error('tfjs-react-native module does not have the expected ready() method');
-        }
-        
-      } catch (error) {
-        Logger.warn('Error initializing resources in React Native', error as Error);
-        Logger.info('For React Native, make sure to install @tensorflow/tfjs-react-native');
-        
-        // Fallback to CPU in case of error
         await loadBackend('cpu');
         await tf.setBackend('cpu');
-      }
-    } else {
-      // Browser - try WebGL first, with fallback to CPU
-      try {
-        const webglLoaded = await loadBackend('webgl');
-        if (webglLoaded) {
-          await tf.setBackend('webgl');
-        } else {
-          throw new Error('WebGL backend loading failed');
-        }
-      } catch (error) {
-        Logger.warn('WebGL unavailable, using CPU as alternative', error as Error);
-        try {
-          await loadBackend('cpu');
-          await tf.setBackend('cpu');
-        } catch (cpuError) {
-          Logger.error('Failed to initialize both WebGL and CPU backends', cpuError as Error);
-          throw new Error('Could not initialize any TensorFlow backend');
-        }
+      } catch (cpuError) {
+        Logger.error('Failed to initialize both WebGL and CPU backends', cpuError as Error);
+        throw new Error('Could not initialize any TensorFlow backend');
       }
     }
-    
-    Logger.debug(`Internal resources initialized with backend: ${tf.getBackend()}`);
   }
 }
 

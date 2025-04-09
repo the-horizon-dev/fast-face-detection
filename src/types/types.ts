@@ -72,7 +72,7 @@ export interface NodeCanvasElement {
 /**
  * Supported environments
  */
-export type Environment = 'browser' | 'node' | 'react-native';
+export type Environment = 'browser' | 'node';
 
 /**
  * Detection configuration options
